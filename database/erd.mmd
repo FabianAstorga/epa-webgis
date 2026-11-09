@@ -1,0 +1,193 @@
+%% ============================================================================
+%%  EPA WebGIS · Diagrama entidad-relacion v1.0
+%%  Se puede pegar en https://mermaid.live o abrir con la vista previa.
+%%  Notacion: || exactamente uno, |o cero o uno, }o cero o muchos.
+%% ============================================================================
+erDiagram
+    roles ||--o{ usuarios : asigna
+    usuarios ||--o{ vuelos : opera
+    usuarios ||--o{ lotes_ingesta : sube
+    usuarios ||--o{ incidencias : reporta
+    usuarios ||--o{ evidencias_incidencia : asocia
+    usuarios ||--o{ historial_estados_incidencia : cambia
+    usuarios ||--o{ informes : solicita
+
+    sectores ||--o{ vuelos : agrupa
+    sectores ||--o{ incidencias : ubica
+    sectores |o--o{ informes : filtra
+    drones |o--o{ vuelos : ejecuta
+
+    vuelos ||--o{ lotes_ingesta : recibe
+    lotes_ingesta ||--o{ fotografias : procesa
+    lotes_ingesta ||--o{ archivos_rechazados : rechaza
+
+    categorias_incidencia ||--o{ incidencias : clasifica
+    severidades ||--o{ incidencias : califica
+
+    incidencias ||--o{ evidencias_incidencia : tiene
+    fotografias ||--o{ evidencias_incidencia : respalda
+
+    incidencias ||--o{ historial_estados_incidencia : registra
+    estados_incidencia |o--o{ historial_estados_incidencia : anterior
+    estados_incidencia ||--o{ historial_estados_incidencia : nuevo
+    estados_incidencia ||--o{ transiciones_estado : origen
+    estados_incidencia ||--o{ transiciones_estado : destino
+
+    informes ||--o{ informe_detalle : incluye
+    incidencias ||--o{ informe_detalle : listada
+    informes }o--o| fotografias : foto_A
+    informes }o--o| fotografias : foto_B
+
+    roles {
+        smallint id_rol PK
+        varchar codigo UK
+        varchar nombre
+    }
+
+    usuarios {
+        bigint id_usuario PK
+        varchar nombre
+        varchar email UK
+        varchar password_hash
+        smallint id_rol FK
+        varchar unidad
+        boolean activo
+        timestamptz fecha_creacion
+    }
+
+    sectores {
+        bigint id_sector PK
+        varchar codigo UK
+        varchar nombre
+        varchar tipo
+        geometry geom
+        boolean activo
+    }
+
+    drones {
+        bigint id_dron PK
+        varchar nombre
+        varchar modelo
+        varchar numero_serie UK
+    }
+
+    vuelos {
+        bigint id_vuelo PK
+        varchar codigo_vuelo UK
+        bigint id_sector FK
+        bigint id_operador FK
+        bigint id_dron FK
+        timestamptz fecha_inicio
+        timestamptz fecha_fin
+    }
+
+    lotes_ingesta {
+        bigint id_lote PK
+        bigint id_vuelo FK
+        bigint id_usuario_sube FK
+        varchar estado
+        integer total_archivos
+        timestamptz fecha_recepcion
+    }
+
+    fotografias {
+        bigint id_foto PK
+        bigint id_lote FK
+        varchar nombre_archivo
+        varchar ruta_relativa
+        varchar hash_sha256 UK
+        timestamptz fecha_captura
+        numeric altitud_msl
+        numeric altitud_relativa_m
+        numeric gimbal_yaw
+        numeric gimbal_pitch
+        numeric gimbal_roll
+        geometry posicion
+    }
+
+    archivos_rechazados {
+        bigint id_rechazo PK
+        bigint id_lote FK
+        varchar nombre_archivo
+        varchar motivo
+        text detalle
+    }
+
+    categorias_incidencia {
+        smallint id_categoria PK
+        varchar codigo UK
+        varchar nombre
+        boolean activo
+    }
+
+    severidades {
+        smallint id_severidad PK
+        varchar codigo UK
+        varchar nombre
+        smallint nivel
+    }
+
+    estados_incidencia {
+        smallint id_estado PK
+        varchar codigo UK
+        varchar nombre
+        boolean es_final
+        smallint orden
+    }
+
+    transiciones_estado {
+        smallint id_estado_origen PK, FK
+        smallint id_estado_destino PK, FK
+    }
+
+    incidencias {
+        bigint id_incidencia PK
+        varchar codigo_incidencia UK
+        smallint id_categoria FK
+        smallint id_severidad FK
+        bigint id_sector FK
+        text descripcion
+        geometry ubicacion
+        bigint id_usuario_reporta FK
+        timestamptz fecha_creacion
+    }
+
+    evidencias_incidencia {
+        bigint id_evidencia PK
+        bigint id_incidencia FK
+        bigint id_foto FK
+        varchar tipo
+        smallint orden
+        bigint id_usuario_asocia FK
+    }
+
+    historial_estados_incidencia {
+        bigint id_historial PK
+        bigint id_incidencia FK
+        smallint id_estado_anterior FK
+        smallint id_estado_nuevo FK
+        text observacion
+        bigint id_usuario_cambio FK
+        timestamptz fecha_cambio
+    }
+
+    informes {
+        bigint id_informe PK
+        varchar numero UK
+        bigint id_usuario_solicita FK
+        varchar tipo
+        bigint id_sector FK
+        date fecha_desde
+        date fecha_hasta
+        bigint id_foto_a FK
+        bigint id_foto_b FK
+        integer total_incidencias
+        varchar estado
+        varchar ruta_archivo
+    }
+
+    informe_detalle {
+        bigint id_informe PK, FK
+        bigint id_incidencia PK, FK
+        integer orden
+    }
